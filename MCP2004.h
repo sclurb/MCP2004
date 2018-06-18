@@ -194,21 +194,21 @@ long minute_timer = MINUTE_WD;		//minute timer runs to 0xffff, for 60 second per
 
 //****************************************
 //George's Variables
-unsigned int BitTest1;
-unsigned int BitTest2;
 bit BathInputFlag;
 bit BedInputFlag;
 bit SmokeInputFlag;
 bit CallCancelInputFlag;
 bit SmokeTroubleFlag;
-bit BedInputTroubleFlag;
-unsigned char ADCValue;
-bit GRC1;
-unsigned char GRC2;
+bit BedTroubleFlag;
 bit returncode;
 unsigned char Step;
 bit PortPin;
 bit CancelCallFlag;
+unsigned char ADCValue;
+unsigned char GRC2;
+bit GRC1;
+bit BitTest1;
+bit BitTest2;
 
 // End of George's variables
 //****************************************/

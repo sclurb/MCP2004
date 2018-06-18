@@ -15,7 +15,7 @@
 
 
 
-
+/*
 void output(unsigned char LED)
 {
     if(bit_test(LED,3))
@@ -35,7 +35,7 @@ void output(unsigned char LED)
         LATBbits.LATB3 = 0;
     }
 }
-
+*/
 void InitUart()
 {
     RC1STAbits.SPEN = 1;
@@ -368,7 +368,7 @@ void transmit_status()
 
 void ProcessPinInput(unsigned int port)
 {
-    RC1 = 0;
+    GRC1 = 0;
     switch(port)
     {
         case 1:
@@ -382,24 +382,24 @@ void ProcessPinInput(unsigned int port)
             BitTest2 = PORTAbits.RA3;
             break;
     }
-    if((BitTest1 == BitTest2)&&(BitTest2 == 1))
+    if(BitTest1 == BitTest2)
     {
-        returncode = (unsigned char)BitTest1;
+        GRC1 =  BitTest2;
     }
 }
 
 void ProcessADCValue()
 {
-    RC = 0;
+    GRC1 = 0;
     if(ADCValue > 0xDE)
     {
-        RC = 1;
+        GRC1 = 1;
     }
     else
     {
         if(ADCValue <0x63)
         {
-            RC = 2;
+            GRC1 = 2;
         }
     }
 }
@@ -515,53 +515,54 @@ void main()
     TX_ENA = 0;
  
  receive_mode = 1;
+ unsigned short Step1 = 0;
 // main program loop
 	do
 	{
-        switch(Step)
+        switch(Step1)
         {
             case 3:             // process cancel button
-                Step = 0;
+                Step1 = 0;
                 ProcessPinInput(1);
-                CancelCallFlag = returncode;
+                CancelCallFlag = GRC1;
                 NOP();
                 break;
             case 2:             // process smoke input
-                Step = 3;
+                Step1 = 3;
         		ADCValue = Getdata(0x07);
                 ProcessADCValue();
-                if(RC == 2)
+                if(GRC1 == 2)
                 {
                     SmokeTroubleFlag = 1;
                 }
                 else
                 {
-                    if(RC == 0)
+                    if(GRC1 == 0)
                     {
                       SmokeInputFlag = 1;
                     }
                 }
                 break;
             case 1:         // process bed call
-                Step = 2;
+                Step1 = 2;
         		ADCValue = Getdata(0x03);
                 ProcessADCValue();
-                if(RC == 2)
+                if(GRC1 == 2)
                 {
                     BedTroubleFlag = 1;
                 }
                 else
                 {
-                    if(RC == 0)
+                    if(GRC1 == 0)
                     {
                       BedInputFlag = 1;
                     }
                 }
                 break;
             case 0:         // process the bath call
-                Step = 1;
+                Step1 = 1;
                 ProcessPinInput(2);
-                BathInputFlag = returncode;
+                BathInputFlag = GRC1;
                 NOP();
                 break;
         }
