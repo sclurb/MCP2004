@@ -205,11 +205,13 @@ bit GRC1;
 bit BitTest1;
 bit BitTest2;
 bit PortPin;
-bit CancelCallFlag;
+bit CallCancelFlag;
 unsigned char Step;
 unsigned char ADCValue;
 unsigned char GRC2;
- unsigned short Step1;
+unsigned short Step1;
+unsigned char BathCallAck = 0;
+unsigned char BedCallAck = 0;
 
 // End of George's variables
 //****************************************/
@@ -230,6 +232,7 @@ void transmit_status();
 void interrupt PortComm(void);
 void exec_command();
 void GetBedSmoke();
-void output(unsigned char LED);
+void output();
 void ProcessPinInput(unsigned int port);
 void ProcessADCValue();
+void Transmit_bytes();
