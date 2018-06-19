@@ -61,41 +61,6 @@ PIE0bits.TMR0IE = 1;
  //   T0CON0 = 0x00;
 //}
 
-void ProcessADC()
-{
-    if(BedCall > 0xbe )
-    {
-        stat_call_trouble = 1;
-        stat_ecall = 0;
-    }
-    if((BedCall < 0xbe) && (BedCall > 0x63 ))
-    {
-        stat_call_trouble = 0;
-        stat_ecall = 0;
-    }
-    if(BedCall < 0x63 )
-    {
-        stat_call_trouble = 0;
-        stat_ecall = 1;
-    }
-    
-    if(Smoke > 0xbe )
-    {
-        stat_smoke_trouble = 1;
-        stat_smoke_alarm = 0;
-    }
-    if((Smoke < 0xbe) && (BedCall > 0x63 ))
-    {
-        stat_smoke_trouble = 0;
-        stat_smoke_alarm = 0;
-    }
-    if(Smoke < 0x63 )
-    {
-        stat_smoke_trouble = 0;
-        stat_smoke_alarm = 1;
-    }
-}
-// This function gets data from the A/D. The specified input in the parameter chooses which A/D
 
 unsigned char Getdata(unsigned char regdata)
 {
@@ -390,16 +355,16 @@ void ProcessPinInput(unsigned int port)
 
 void ProcessADCValue()
 {
-    GRC1 = 0;
+    GRC2 = 0;
     if(ADCValue > 0xDE)
     {
-        GRC1 = 1;
+        GRC2 = 2;
     }
     else
     {
         if(ADCValue <0x63)
         {
-            GRC1 = 2;
+            GRC2 = 1;
         }
     }
 }
@@ -515,7 +480,7 @@ void main()
     TX_ENA = 0;
  
  receive_mode = 1;
- unsigned short Step1 = 0;
+ Step1 = 0;
 // main program loop
 	do
 	{
@@ -531,15 +496,22 @@ void main()
                 Step1 = 3;
         		ADCValue = Getdata(0x07);
                 ProcessADCValue();
-                if(GRC1 == 2)
+                if(GRC2 == 2)
                 {
                     SmokeTroubleFlag = 1;
+                    SmokeInputFlag = 0;
                 }
                 else
                 {
-                    if(GRC1 == 0)
+                    if(GRC2 == 1)
                     {
-                      SmokeInputFlag = 1;
+                    SmokeTroubleFlag = 0;
+                    SmokeInputFlag = 1;
+                    }
+                    else
+                    {
+                    SmokeTroubleFlag = 0;
+                    SmokeInputFlag = 0;                        
                     }
                 }
                 break;
@@ -547,15 +519,22 @@ void main()
                 Step1 = 2;
         		ADCValue = Getdata(0x03);
                 ProcessADCValue();
-                if(GRC1 == 2)
+                if(GRC2 == 2)
                 {
                     BedTroubleFlag = 1;
+                    BedInputFlag = 0;
                 }
                 else
                 {
-                    if(GRC1 == 0)
+                    if(GRC2 == 1)
                     {
                       BedInputFlag = 1;
+                      BedTroubleFlag = 0;
+                    }
+                    else
+                    {
+                        BedTroubleFlag = 0;
+                        BedInputFlag = 0;
                     }
                 }
                 break;

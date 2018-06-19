@@ -201,14 +201,15 @@ bit CallCancelInputFlag;
 bit SmokeTroubleFlag;
 bit BedTroubleFlag;
 bit returncode;
-unsigned char Step;
-bit PortPin;
-bit CancelCallFlag;
-unsigned char ADCValue;
-unsigned char GRC2;
 bit GRC1;
 bit BitTest1;
 bit BitTest2;
+bit PortPin;
+bit CancelCallFlag;
+unsigned char Step;
+unsigned char ADCValue;
+unsigned char GRC2;
+ unsigned short Step1;
 
 // End of George's variables
 //****************************************/
@@ -230,3 +231,5 @@ void interrupt PortComm(void);
 void exec_command();
 void GetBedSmoke();
 void output(unsigned char LED);
+void ProcessPinInput(unsigned int port);
+void ProcessADCValue();
