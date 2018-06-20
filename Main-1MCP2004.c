@@ -7,18 +7,12 @@
 
 
 #include "MCP2004.h"
-
-
 //Functions
 
 
-
-
-
-
-void output()
+void output(unsigned char LED)
 {
-    if(bit_test(ra_shadow,3))
+    if(bit_test(LED,3))
     {
         LATBbits.LATB5 = 1;     // call led is on
     }
@@ -26,7 +20,7 @@ void output()
     {
         LATBbits.LATB5 = 0;     // call led is off
     }
-    if(bit_test(ra_shadow,2))
+    if(bit_test(LED,2))
     {
         LATBbits.LATB3 = 1;     // check in led is on
     }
@@ -235,7 +229,7 @@ void exec_command()
     }
     if(rx_byte2 & 0x04)     // Bath Call Placed LED
     {
-        LATBbits.LATB5 = 1;
+        //LATBbits.LATB5 = 1;
     }
     if(rx_byte2 & 0x08)     // Bed Call Ack
     {
@@ -270,7 +264,7 @@ void exec_command()
     {
         
     } 
-    if(rx_byte3 & 0x10)     // INtercom 1 Ack
+    if(rx_byte3 & 0x10)     // Intercom 1 Ack
     {
         
     } 
@@ -289,55 +283,63 @@ void Transmit_bytes()
 {
     TXdata[0] = 0;
     TXdata[1] = 0;
-    TXdata[0] = TXdata[0] | (0x01 & BedInputFlag);    
-    TXdata[0] = TXdata[0] | (0x02 & (BathInputFlag << 1));
-    TXdata[0] = TXdata[0] | (0x04 & (SmokeInputFlag << 2));
-    TXdata[0] = TXdata[0] | (0x08 & (CallCancelFlag << 3));
-    TXdata[0] = TXdata[0] | (0x10 & 0);
-    TXdata[0] = TXdata[0] | (0x20 & 0);
-    TXdata[0] = TXdata[0] | (0x40 & 0);
-    TXdata[0] = TXdata[0] | (0x80 & 0);    
+    if(BathInputFlag)
+    {
+        bit_set(TXdata[0], 0);
+    }
+    if(BedInputFlag)
+    {
+        bit_set(TXdata[0], 1);
+    }
+    if(SmokeInputFlag)
+    {
+        bit_set(TXdata[0],2);
+    }
+    if(CallCancelFlag)
+    {
+        bit_set(TXdata[0], 3);
+    }
+    if(CheckInFlag)
+    {
+        bit_set(TXdata[0], 4);
+    }
+    if(SecurityInputFlag)
+    {
+        bit_set(TXdata[0], 5);
+    }
+    // 
+    if(BedTroubleFlag)
+    {
+        bit_set(TXdata[1], 1);
+    }
+    if(SmokeTroubleFlag)
+    {
+        bit_set(TXdata[1], 2);
+    }
+    if(MotionInputFlag)
+    {
+        bit_set(TXdata[1], 3);
+    }
+    /*
+    if(BedExitFlag)
+    {
+        bit_set(TXdata[1], 4);
+    }
+    */
+    if(BedWetInputFlag)
+    {
+        bit_set(TXdata[1], 5);
+    }
+    if(ResetEventFlag)
+    {
+        bit_set(TXdata[1], 6);
+    }  
     __delay_ms(6);
     NOP();
     send(TXdata, 2);   
 }
 
-  ////////////////////////
- /// Transmits Status ///
-////////////////////////
-
-void transmit_status()
-{
-	//output_low(TP1);
-	tx_byte1 = 0;	
-	tx_byte2 = 0;	
-	
-	if (stat_smoke_alarm)
-	{	bit_set(tx_byte1,2);  }
-	if (stat_smoke_trouble)
-	{	bit_set(tx_byte2,2);  }
-	if (stat_call_trouble)
-	{	bit_set(tx_byte2,1);  }
-	if (stat_security)
-	{	bit_set(tx_byte1,5);  }
-		
-	if (stat_panel_reset)
-	{	bit_set(tx_byte2,6);  }	
-	if (stat_checkin)
-	{	bit_set(tx_byte1,4);  }	
-	if (stat_ecall)
-	{	bit_set(tx_byte1,1);  }	
-	if (stat_icm)
-	{	bit_set(tx_byte1,6);  }	
-    
-    TXdata[0] = tx_byte1;
-    TXdata[1] = tx_byte2;
-
-    __delay_ms(6);
-    send(TXdata, 2);
-	return;
-}
-
+ 
 void ProcessPinInput(unsigned int port)
 {
     GRC1 = 0;
@@ -345,12 +347,12 @@ void ProcessPinInput(unsigned int port)
     {
         case 1:
             BitTest1 = PORTBbits.RB2;
-            // delay
+            __delay_ms(5);
             BitTest2 = PORTBbits.RB2;
             break;
         case 2:
             BitTest1 = PORTAbits.RA3;
-            // delay
+            __delay_ms(5);
             BitTest2 = PORTAbits.RA3;
             break;
     }
@@ -387,10 +389,11 @@ void interrupt PortComm(void)
     if (PIR0bits.TMR0IF == 1)       // for checking timer 0 roll over
     {
         PIR0bits.TMR0IF = 0;
+        BlinkFlag = ~BlinkFlag;
         if(led_timer == 0xff)           // control the flash rate of LED's
         {
             led_timer = 0x20; 
-            BlinkFlag = ~BlinkFlag;
+            //BlinkFlag = ~BlinkFlag;
         }
         else
         {
@@ -487,6 +490,15 @@ void main()
     InitTMR0();
     TX_ENA = 0;
  
+// Just temprarily setting these new variable to zero until I further implement them in code
+    SecurityInputFlag = 0;
+    CheckInFlag = 0;
+    MotionInputFlag = 0;
+    BedWetInputFlag = 0;
+    ResetEventFlag = 0;
+    BlinkFlag = 0;
+// End of temporary code////////////////////////////////////////////////////////////////////  
+    
  receive_mode = 1;
  Step1 = 0;
 // main program loop
@@ -498,9 +510,11 @@ void main()
         {
             case 3:             // process cancel button
                 Step1 = 0;
-                ProcessPinInput(1);
-                CallCancelFlag = GRC1;
-                NOP();
+                if(!CallCancelFlag)
+                {
+                    ProcessPinInput(1);
+                    CallCancelFlag = GRC1;                    
+                }
                 break;
             case 2:             // process smoke input
                 Step1 = 3;
@@ -550,9 +564,11 @@ void main()
                 break;
             case 0:         // process the bath call
                 Step1 = 1;
-                ProcessPinInput(2);
-                BathInputFlag = GRC1;
-                NOP();
+                if(!BathInputFlag)
+                {
+                    ProcessPinInput(2);
+                    BathInputFlag = GRC1;                    
+                }
                 break;
         }
         ////////////////////////////////////////////////////////
@@ -574,221 +590,26 @@ void main()
             rx_byte3 = 0;            
             command_state = 0;
         }
-        if (BlinkFlag == 1)
+        if(BathInputFlag)
         {
-            output();
+            bit_set(ra_shadow, 3);
         }
         
-
+        
+        if (BlinkFlag == 1)
+        {
+            output(ra_shadow);
+        }
+        else
+        {
+            output(0x00);
+        }
+        
+        reset_flag = 0;
 	}while(!reset_flag);		// exit program loop when reset flag appears
 	reset_cpu();				// and reset and restart
 }
         
-/*
 
-        
-		//restart_wdt();
-        
-
-
-
-        // call indicator decision tree
-        //if (stat_ecall || !sw_call)
-        if (stat_ecall || sw_call) 			// if either call switch is on, flash 4 Hz
-        {	
-            if	(bit_test(led_timer,0))
-            {	
-                bit_clear(ra_shadow,LED_CALL); 
-            }
-            else 
-            {
-                bit_set(ra_shadow,LED_CALL); 
-            }
-        }
-        else if (ind_call && sw_checkin)
-        {	
-            timeout_30s = 1;	// start 30 second timer and blank call LED
-            led_timer = 0x20;
-        }
-        else if (ind_call && !timeout_30s)									// unless call indicator is commanded on
-        {	
-            bit_set(ra_shadow, LED_CALL);  
-        }
-        else if (stat_ecall)								// else flash at 1 hz
-        {
-            if (bit_test(led_timer,2))
-            {	
-                bit_clear(ra_shadow,LED_CALL); 
-            }
-            else
-            {	
-                bit_set(ra_shadow,LED_CALL); 
-            }
-        }
-        else
-        {	
-            bit_clear(ra_shadow, LED_CALL);  
-        }
-
-        // checkin indicator decision tree
-        if (ind_checkin & !timeout_20s & !sw_checkin)                
-        {
-            if	(bit_test(led_timer,1))
-            {	
-                bit_set(ra_shadow,LED_CHK_IN); 
-            }
-            else 
-            {	
-                bit_clear(ra_shadow,LED_CHK_IN); 
-            }
-        }
-        else if (ind_checkin && sw_checkin)
-        {	
-            timeout_20s = 1;		// start 20 second timer and blank call LED
-            led_timer = 0x70;
-        }
-        else
-        {	
-            bit_set(ra_shadow,LED_CHK_IN); 
-        }
-
-		
-		if (led_timer == 0xff)				// end 30sec or 20sec timeout here
-		{	
-            timeout_30s = 0; 
-            timeout_20s = 0;  
-        }
-
-		
-		
-		
-		// read serial data from shift register and store
-		
-
-		// poll and update status bits
-			// supervised inputs, call and smoke
-		if (vref_toggle)
-		{
-			stat_smoke_alarm = bit_test(CMCON,7);		// comparator = 1 for active
-			if(!stat_ecall)
-			{	stat_ecall = (bit_test(CMCON,6) || sw_call);  }		//event, latch
-			setup_vref(VREF_HIGH | COMP_TROUBLE);		// for next time around
-		}
-		else
-		{
-			stat_smoke_trouble = !bit_test(CMCON,7);		// comparator = 0 for trouble
-			stat_call_trouble = !bit_test(CMCON,6);
-			setup_vref(VREF_HIGH | COMP_SUPER);		// for next time around
-		}
-		vref_toggle=!vref_toggle;
-        
-        
-		
-		if (!stat_checkin)
-		{	stat_checkin = sw_checkin;  } 		//event, switch
-		else if (stat_checkin && ack_checkin)		// 
-		{	stat_checkin = 0; ack_checkin = 0;}	
-			
-		if (!stat_security)
-		{	stat_security = sw_security;  }		//event, security
-		else if (ack_security && !sw_security)  // ack without level
-		{	stat_security = 0;  }
-		
-		output(ra_shadow);
- * 
- * 
- * 
- * void exec_command()
-{
-    
-	int anddata, ordata;
-	// First byte
-	anddata = rx_byte1 & rx_byte1_hold;		// examine first byte record
-	ordata = rx_byte1 | rx_byte1_hold;		// needed to confirm zero's
-	if ((anddata & 0x40) != 0)
-	{	
-        SMOKE_PWR = 0;  
-    }
-	if ((ordata & 0x40) == 0)
-	{	
-        SMOKE_PWR = 1;  
-    }
-	
-	// Second byte
-	anddata = rx_byte2 & rx_byte2_hold;		// examine second byte record
-	ordata = rx_byte2 | rx_byte2_hold;
-		//reset acknowledge
-	if ((anddata & 0x01) != 0)
-	{	
-        stat_panel_reset = 0;  
-    }			// reset acknowledge
-	
-		// checkin / cancel
-	if ((anddata & 0x20) !=0)				// was 0x02
-	{	
-        ack_checkin = 1;
-    }
-	
-		//bed and bath call ack
-	if ((anddata & 0x0a) != 0)				// was 0x04, now two possible sources of acknowledgement
-	{	
-        ack_ecall = 1;  
-    }			// check-in acknowledge
-	if (ack_ecall)// && sw_checkin)		// if both call ack and checkin switch
-	{	
-        stat_ecall = 0; 
-        ack_ecall = 0;
-    }
-		
-		// bed call placed	
-	if ((anddata & 0x10) !=0)		// call indicator command, was 0x20
-	{	
-        ind_call = 1;  
-    }	
-	if ((ordata & 0x10) ==0)
-	{	
-        ind_call = 0; 	
-    }
-	
-		// check-in indicator	
-	if ((anddata & 0x40) !=0)		// check-in indicator command
-	{	
-        ind_checkin = 1;  
-    }	
-	if ((ordata & 0x40) == 0)
-	{	
-        ind_checkin = 0; 	
-    }
-		
-	if (!stat_security)
-	{	
-        poll_count = 0; 
-        ack_security = 0; 
-    }
-	else 
-	{	
-		poll_count++;					
-		if (poll_count > 1)				// ack after two poll cycles
-		{	
-            ack_security = 1;  
-        }	  
-	}
-	
-	// Third byte
-	anddata = rx_byte3 & rx_byte3_hold;		// examine third byte record
-	ordata = rx_byte3 | rx_byte3_hold;
-
-	rx_byte1_hold = rx_byte1;
-	rx_byte2_hold = rx_byte2;
-	rx_byte3_hold = rx_byte3;
-	return;
-// ack_checkin;
-// ack_ecall;
-// ack_icm;
-// ack_security;
-// ind_call;
-// ind_checkin;
-}
-*/
 
 
